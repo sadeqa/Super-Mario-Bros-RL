@@ -29,8 +29,8 @@ def _process_frame_mario(frame):
         img = np.reshape(frame, [240, 256, 3]).astype(np.float32)        
         img = img[:, :, 0] * 0.299 + img[:, :, 1] * 0.587 + img[:, :, 2] * 0.114
         x_t = cv2.resize(img, (84, 84))
-        x_t = np.reshape(x_t, [1, 84, 84])
-        x_t.astype(np.uint8)
+        x_t = np.reshape(x_t, [1, 84, 84])/255.0
+        #x_t.astype(np.uint8)
 
     else:
         x_t = np.zeros((1, 84, 84))
