@@ -44,7 +44,8 @@ def train(rank, args, shared_model, counter, lock, optimizer=None, select_sample
     ByteTensor = torch.ByteTensor# torch.cuda.ByteTensor if args.use_cuda else torch.ByteTensor
 
 
-
+    savefile = os.getcwd() + '/save/default/train_reward.csv'
+    
     env = create_mario_env(args.env_name, args.reward_type)
     #env.seed(args.seed + rank)
 
@@ -55,6 +56,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None, select_sample
     model.train()
 
     state = env.reset()
+    cum_rew = 0
     state = torch.from_numpy(state)
     done = True
 
@@ -62,7 +64,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None, select_sample
     for num_iter in count():
         
         if rank == 0:
-            env.render()
+            #env.render()
 
             if num_iter % args.save_interval == 0 and num_iter > 0:
                 print ("Saving model at :" + args.save_path)            
@@ -106,9 +108,10 @@ def train(rank, args, shared_model, counter, lock, optimizer=None, select_sample
             
             action_out = int(action[0, 0].data.numpy())
             state, reward, done, _ = env.step(action_out)
+            cum_rew = cum_rew + reward
 
             done = done or episode_length >= args.max_episode_length
-            reward = max(min(reward, 50), -50)
+            reward = max(min(reward, 500), -50)
 
             with lock:
                 counter.value += 1
@@ -117,7 +120,11 @@ def train(rank, args, shared_model, counter, lock, optimizer=None, select_sample
                 episode_length = 0
 #                 env.change_level(0)
                 state = env.reset()
-                print ("Process {} has completed.".format(rank))
+                with open(savefile[:-4]+'_{}.csv'.format(rank), 'a', newline='') as sfile:
+                    writer = csv.writer(sfile)
+                    writer.writerows([[cum_rew]])
+                cum_rew = 0
+                #print ("Process {} has completed.".format(rank))
 
             env.locked_levels = [False] + [True] * 31
             state = torch.from_numpy(state)
@@ -154,7 +161,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None, select_sample
 
         total_loss = policy_loss + args.value_loss_coef * value_loss
         
-        print ("Process {} loss :".format(rank), total_loss.data)
+        #print ("Process {} loss :".format(rank), total_loss.data)
         optimizer.zero_grad()
 
         (total_loss).backward()
@@ -162,8 +169,8 @@ def train(rank, args, shared_model, counter, lock, optimizer=None, select_sample
 
         ensure_shared_grads(model, shared_model)
         optimizer.step()
-    print(rank)
-    print ("Process {} closed.".format(rank))
+    #print(rank)
+    #print ("Process {} closed.".format(rank))
 
 def test(rank, args, shared_model, counter):
     torch.manual_seed(args.seed + rank)
@@ -188,7 +195,7 @@ def test(rank, args, shared_model, counter):
     state = torch.from_numpy(state)
     reward_sum = 0
     done = True
-    savefile = os.getcwd() + '/save/mario_curves.csv'
+    savefile = os.getcwd() + '/save/default/mario_curves.csv'
     
     title = ['Time','No. Steps', 'Total Reward', 'Episode Length']
     with open(savefile, 'a', newline='') as sfile:
@@ -226,7 +233,7 @@ def test(rank, args, shared_model, counter):
         action = prob.max(-1, keepdim=True)[1].data
         action_out = int(action[0, 0].data.numpy())
         state, reward, done, info = env.step(action_out)
-        env.render()
+        #env.render()
         done = done or episode_length >= args.max_episode_length
         reward_sum += reward
 

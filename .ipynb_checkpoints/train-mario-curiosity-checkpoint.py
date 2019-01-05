@@ -14,7 +14,7 @@ from trainer.a3c.train_curiosity import train, test
 from common.mario_actions import ACTIONS
 
 
-SAVEPATH = os.getcwd() + '/save/mario_a3c_params.pkl'
+SAVEPATH = os.getcwd() + '/save/curiosity/mario_a3c_params.pkl'
 
 parser = argparse.ArgumentParser(description='A3C')
 parser.add_argument('--lr', type=float, default=0.0001,

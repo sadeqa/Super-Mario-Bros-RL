@@ -38,7 +38,7 @@ def train(rank, args, shared_model, shared_curiosity, counter, lock, optimizer=N
     DoubleTensor = torch.DoubleTensor# torch.cuda.DoubleTensor if args.use_cuda else torch.DoubleTensor
     ByteTensor = torch.ByteTensor# torch.cuda.ByteTensor if args.use_cuda else torch.ByteTensor
 
-    savefile = os.getcwd() + '/save/train_reward.csv'
+    savefile = os.getcwd() + '/save/curiosity/train_reward.csv'
 
     env = create_mario_env(args.env_name, args.reward_type)
     #env.seed(args.seed + rank)
@@ -63,8 +63,6 @@ def train(rank, args, shared_model, shared_curiosity, counter, lock, optimizer=N
         #env.render()
         if rank == 0:
             
-            
-
             if num_iter % args.save_interval == 0 and num_iter > 0:
                 print ("Saving model at :" + args.save_path)            
                 torch.save(shared_model.state_dict(), args.save_path)
@@ -224,7 +222,7 @@ def test(rank, args, shared_model, counter):
     state = torch.from_numpy(state)
     reward_sum = 0
     done = True
-    savefile = os.getcwd() + '/save/mario_curves.csv'
+    savefile = os.getcwd() + '/save/curiosity/mario_curves.csv'
     
     title = ['Time','No. Steps', 'Total Reward', 'Episode Length']
     with open(savefile, 'a', newline='') as sfile:
