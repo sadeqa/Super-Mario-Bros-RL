@@ -38,7 +38,7 @@ def train(rank, args, shared_model, shared_curiosity, counter, lock, optimizer=N
     DoubleTensor = torch.DoubleTensor# torch.cuda.DoubleTensor if args.use_cuda else torch.DoubleTensor
     ByteTensor = torch.ByteTensor# torch.cuda.ByteTensor if args.use_cuda else torch.ByteTensor
 
-
+    savefile = os.getcwd() + '/save/train_reward.csv'
 
     env = create_mario_env(args.env_name, args.reward_type)
     #env.seed(args.seed + rank)
@@ -54,14 +54,16 @@ def train(rank, args, shared_model, shared_curiosity, counter, lock, optimizer=N
     curiosity.train()
 
     state = env.reset()
+    cum_rew = 0 
     state = torch.from_numpy(state)
     done = True
-
+    
     episode_length = 0
     for num_iter in count():
-        
+        #env.render()
         if rank == 0:
-            #env.render()
+            
+            
 
             if num_iter % args.save_interval == 0 and num_iter > 0:
                 print ("Saving model at :" + args.save_path)            
@@ -111,19 +113,23 @@ def train(rank, args, shared_model, shared_curiosity, counter, lock, optimizer=N
             
             action_out = int(action[0, 0].data.numpy())
             state, reward, done, _ = env.step(action_out)
+            cum_rew = cum_rew + reward
             
             action_one_hot = (torch.eye(len(ACTIONS))[action_out]).view(1,-1)
             
             next_state_inp = Variable(torch.from_numpy(state).unsqueeze(0)).type(FloatTensor)
             logits_pred, pred_phi, actual_phi = curiosity((state_inp, next_state_inp, action_one_hot))
             
-            inverse_loss = cross_entropy(logits_pred, action[0])
-            forward_loss = ((pred_phi - actual_phi)**2).sum(-1, keepdim=True)/2
+            inverse_loss = cross_entropy(logits_pred, action[0])/len(ACTIONS)
+            forward_loss = ((pred_phi - actual_phi).pow(2)).sum(-1, keepdim=True)/2
             
             done = done or episode_length >= args.max_episode_length
             
-#             reward = max(min(reward, 50), -50)
-            reward = args.eta*forward_loss
+            int_reward = (args.eta*forward_loss).data.numpy()[0,0]
+            
+            reward = int_reward + reward/10
+            reward = max(min(reward, 500), -50)
+            
             
             with lock:
                 counter.value += 1
@@ -132,7 +138,11 @@ def train(rank, args, shared_model, shared_curiosity, counter, lock, optimizer=N
                 episode_length = 0
 #                 env.change_level(0)
                 state = env.reset()
-                print ("Process {} has completed.".format(rank))
+                with open(savefile[:-4]+'_{}.csv'.format(rank), 'a', newline='') as sfile:
+                    writer = csv.writer(sfile)
+                    writer.writerows([[cum_rew]])
+                cum_rew = 0 
+ #               print ("Process {} has completed.".format(rank))
 
 #            env.locked_levels = [False] + [True] * 31
             state = torch.from_numpy(state)
@@ -167,18 +177,17 @@ def train(rank, args, shared_model, shared_curiosity, counter, lock, optimizer=N
             delta_t = rewards[i] + args.gamma * values[i + 1].data - values[i].data
             gae = gae * args.gamma * args.tau + delta_t
 
-            policy_loss -= log_probs[i] * Variable(gae).type(FloatTensor) - args.entropy_coef * entropies[i]
+            policy_loss = policy_loss - log_probs[i] * Variable(gae).type(FloatTensor) - args.entropy_coef * entropies[i]
             
             curiosity_loss += (1 - args.beta)*inverse_losses[i] + args.beta*forward_losses[i]
             
         total_loss = args.lambd*(policy_loss + args.value_loss_coef * value_loss)
         
-        print ("Process {} loss :".format(rank), total_loss.data)
+#        print ("Process {} loss :".format(rank), total_loss.data)
         optimizer.zero_grad()
 #         cur_optimizer.zero_grad()
         
-        curiosity_loss /= len(rewards)
-        (total_loss + curiosity_loss).backward()
+        (total_loss + 10.0*curiosity_loss).backward()
 #         (curiosity_loss).backward()
         
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
@@ -189,8 +198,8 @@ def train(rank, args, shared_model, shared_curiosity, counter, lock, optimizer=N
         
         optimizer.step()
         
-    print(rank)
-    print ("Process {} closed.".format(rank))
+#    print(rank)
+#    print ("Process {} closed.".format(rank))
 
 def test(rank, args, shared_model, counter):
     torch.manual_seed(args.seed + rank)
@@ -253,7 +262,7 @@ def test(rank, args, shared_model, counter):
         action = prob.max(-1, keepdim=True)[1].data
         action_out = int(action[0, 0].data.numpy())
         state, reward, done, info = env.step(action_out)
-        env.render()
+        #env.render()
         done = done or episode_length >= args.max_episode_length
         reward_sum += reward
 

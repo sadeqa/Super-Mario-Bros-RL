@@ -52,7 +52,7 @@ parser.add_argument('--reward_type', type=str, default='basic',
 parser.add_argument('--pos_stuck', type= bool, default=False,
                     help='penalise getting stuck in a position (default: False)')
 parser.add_argument('--lambd', type=float, default=1.0,
-                    help='importance of policy gradient loss (default: 0.1)')
+                    help='importance of policy gradient loss (default: 1.0)')
 parser.add_argument('--beta', type=float, default=0.2,
                     help='importance of learning the intrinsic reward (default: 0.2)')
 parser.add_argument('--eta', type=float, default=0.2,

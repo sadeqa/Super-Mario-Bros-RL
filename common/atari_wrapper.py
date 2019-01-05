@@ -80,8 +80,8 @@ class ProcessFrameMario(gym.Wrapper):
         self.prev_score = info['score']
 
         if done:
-            if info['x_pos'] >= 3225:
-                reward += 50
+            if info['flag_get'] :
+                reward += 500
             else:
                 reward -= 50
 

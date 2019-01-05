@@ -38,7 +38,7 @@ def train(rank, args, shared_model, shared_curiosity, counter, lock, optimizer=N
     DoubleTensor = torch.DoubleTensor# torch.cuda.DoubleTensor if args.use_cuda else torch.DoubleTensor
     ByteTensor = torch.ByteTensor# torch.cuda.ByteTensor if args.use_cuda else torch.ByteTensor
 
-
+    savefile = os.getcwd() + '/save/train_reward.csv'
 
     env = create_mario_env(args.env_name, args.reward_type)
     #env.seed(args.seed + rank)
@@ -54,9 +54,10 @@ def train(rank, args, shared_model, shared_curiosity, counter, lock, optimizer=N
     curiosity.train()
 
     state = env.reset()
+    cum_rew = 0 
     state = torch.from_numpy(state)
     done = True
-
+    
     episode_length = 0
     for num_iter in count():
         #env.render()
@@ -112,6 +113,7 @@ def train(rank, args, shared_model, shared_curiosity, counter, lock, optimizer=N
             
             action_out = int(action[0, 0].data.numpy())
             state, reward, done, _ = env.step(action_out)
+            cum_rew = cum_rew + reward
             
             action_one_hot = (torch.eye(len(ACTIONS))[action_out]).view(1,-1)
             
@@ -126,7 +128,8 @@ def train(rank, args, shared_model, shared_curiosity, counter, lock, optimizer=N
             int_reward = (args.eta*forward_loss).data.numpy()[0,0]
             
             reward = int_reward + reward/10
-            reward = max(min(reward, 50), -50)
+            reward = max(min(reward, 500), -50)
+            
             
             with lock:
                 counter.value += 1
@@ -135,6 +138,10 @@ def train(rank, args, shared_model, shared_curiosity, counter, lock, optimizer=N
                 episode_length = 0
 #                 env.change_level(0)
                 state = env.reset()
+                with open(savefile[:-4]+'_{}.csv'.format(rank), 'a', newline='') as sfile:
+                    writer = csv.writer(sfile)
+                    writer.writerows([[cum_rew]])
+                cum_rew = 0 
  #               print ("Process {} has completed.".format(rank))
 
 #            env.locked_levels = [False] + [True] * 31
@@ -255,7 +262,7 @@ def test(rank, args, shared_model, counter):
         action = prob.max(-1, keepdim=True)[1].data
         action_out = int(action[0, 0].data.numpy())
         state, reward, done, info = env.step(action_out)
-        env.render()
+        #env.render()
         done = done or episode_length >= args.max_episode_length
         reward_sum += reward
 
