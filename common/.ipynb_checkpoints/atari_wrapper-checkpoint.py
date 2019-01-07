@@ -47,6 +47,8 @@ class ProcessFrameMario(gym.Wrapper):
         self.prev_score = 0
         self.prev_dist = 40
         self.reward_type = reward_type
+        self.milestones = [1000,1500,2000,2500,3000]
+        self.counter = 0
 
     def step(self, action):
         ''' 
@@ -58,33 +60,41 @@ class ProcessFrameMario(gym.Wrapper):
                 Done = +50 [Game Completed] or -50 [Game Incomplete]
         '''
         obs, reward, done, info = self.env.step(action)
-
-        if self.reward_type == 'basic':
-            reward = min(max((info['x_pos'] - self.prev_dist), 0), 2)
-            self.prev_dist = info['x_pos']
+        
+        if self.reward_type == 'sparse':
+            reward = 0 
+            if (self.counter < 5) and (info['x_pos'] > self.milestones[self.counter])  : 
+                reward = 20 
+                self.counter = self.counter + 1 
             
-        elif self.reward_type == 'pen_pos':
+            if done : 
+                if info['flag_get'] :
+                    reward = 50
+                else:
+                    reward = -50
+            
+        elif self.reward_type == 'dense':
+            print('im here')
             reward = max(min((info['x_pos'] - self.prev_dist - 0.05), 2), -2)
             self.prev_dist = info['x_pos']
             
+            reward += (self.prev_time - info['time']) * -0.1
+            self.prev_time = info['time']
+
+            reward += (int(info['status']!='small')  - self.prev_stat) * 5
+            self.prev_stat = int(info['status']!='small')
+
+            reward += (info['score'] - self.prev_score) * 0.025
+            self.prev_score = info['score']
+
+            if done:
+                if info['flag_get'] :
+                    reward += 500
+                else:
+                    reward -= 50
+                    
         else : return None
-            
         
-        reward += (self.prev_time - info['time']) * -0.1
-        self.prev_time = info['time']
-        
-        reward += (int(info['status']!='small')  - self.prev_stat) * 5
-        self.prev_stat = int(info['status']!='small')
-
-        reward += (info['score'] - self.prev_score) * 0.025
-        self.prev_score = info['score']
-
-        if done:
-            if info['flag_get'] :
-                reward += 500
-            else:
-                reward -= 50
-
         return _process_frame_mario(obs), reward, done, info
 
     def reset(self):

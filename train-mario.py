@@ -13,7 +13,7 @@ from trainer.a3c.train import train, test
 from common.mario_actions import ACTIONS
 
 
-SAVEPATH = os.getcwd() + '/save/default/mario_a3c_params.pkl'
+
 
 parser = argparse.ArgumentParser(description='A3C')
 parser.add_argument('--lr', type=float, default=0.0001,
@@ -42,12 +42,12 @@ parser.add_argument('--no-shared', type=bool, default=False,
                     help='use an optimizer without shared momentum.')
 parser.add_argument('--save-interval', type=int, default=10,
                     help='model save interval (default: 10)')
-parser.add_argument('--save-path',default=SAVEPATH,
-                    help='model save interval (default: {})'.format(SAVEPATH))
+#parser.add_argument('--save-path',default=SAVEPATH,
+#                    help='model save interval (default: {})'.format(SAVEPATH))
 parser.add_argument('--non-sample', type=int,default=2,
                     help='number of non sampling processes (default: 2)')
-parser.add_argument('--reward_type', type=str, default='basic',
-                    help='define the reward type (default: basic)')
+parser.add_argument('--reward_type', type=str, default='dense',
+                    help='define the reward type (default: dense)')
 parser.add_argument('--pos_stuck', type= bool, default=False,
                     help='penalise getting stuck in a position (default: False)')
 
@@ -59,6 +59,8 @@ if __name__ == '__main__':
     os.environ['OMP_NUM_THREADS'] = '1'
         
     args = parser.parse_args()
+    SAVEPATH = os.getcwd() + '/save/default_'+ args.reward_type +'/mario_a3c_params.pkl'
+    
     env = create_mario_env(args.env_name, args.reward_type)    
 
     shared_model = ActorCritic(
@@ -66,7 +68,7 @@ if __name__ == '__main__':
 
     shared_model.share_memory()
     
-    if os.path.isfile(args.save_path):
+    if os.path.isfile(SAVEPATH):
         print('Loading A3C parameters ...')
         shared_model.load_state_dict(torch.load(args.save_path))
 

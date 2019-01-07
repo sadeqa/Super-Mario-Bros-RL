@@ -44,7 +44,8 @@ def train(rank, args, shared_model, counter, lock, optimizer=None, select_sample
     ByteTensor = torch.ByteTensor# torch.cuda.ByteTensor if args.use_cuda else torch.ByteTensor
 
 
-    savefile = os.getcwd() + '/save/default/train_reward.csv'
+    savefile = os.getcwd() + '/save/default_'+ args.reward_type +'/train_reward.csv'
+    saveweights = os.getcwd() + '/save/default_'+ args.reward_type +'/mario_a3c_params.pkl'
     
     env = create_mario_env(args.env_name, args.reward_type)
     #env.seed(args.seed + rank)
@@ -67,12 +68,12 @@ def train(rank, args, shared_model, counter, lock, optimizer=None, select_sample
             #env.render()
 
             if num_iter % args.save_interval == 0 and num_iter > 0:
-                print ("Saving model at :" + args.save_path)            
-                torch.save(shared_model.state_dict(), args.save_path)
+                print ("Saving model at :" + saveweights)            
+                torch.save(shared_model.state_dict(), saveweights)
 
         if num_iter % (args.save_interval * 2.5) == 0 and num_iter > 0 and rank == 1:    # Second saver in-case first processes crashes 
-            print ("Saving model for process 1 at :" + args.save_path)            
-            torch.save(shared_model.state_dict(), args.save_path)
+            print ("Saving model for process 1 at :" + saveweights)            
+            torch.save(shared_model.state_dict(), saveweights)
             
         # Sync with the shared model
         model.load_state_dict(shared_model.state_dict())
@@ -195,7 +196,7 @@ def test(rank, args, shared_model, counter):
     state = torch.from_numpy(state)
     reward_sum = 0
     done = True
-    savefile = os.getcwd() + '/save/default/mario_curves.csv'
+    savefile = os.getcwd() + '/save/default_'+ args.reward_type +'/mario_curves.csv'
     
     title = ['Time','No. Steps', 'Total Reward', 'Episode Length']
     with open(savefile, 'a', newline='') as sfile:
