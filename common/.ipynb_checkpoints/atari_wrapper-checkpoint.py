@@ -47,7 +47,7 @@ class ProcessFrameMario(gym.Wrapper):
         self.prev_score = 0
         self.prev_dist = 40
         self.reward_type = reward_type
-        self.milestones = [1000,1500,2000,2500,3000]
+        self.milestones = [500,1000,1500,2000,2500,3000]
         self.counter = 0
 
     def step(self, action):
@@ -63,7 +63,7 @@ class ProcessFrameMario(gym.Wrapper):
         
         if self.reward_type == 'sparse':
             reward = 0 
-            if (self.counter < 5) and (info['x_pos'] > self.milestones[self.counter])  : 
+            if (self.counter < 6) and (info['x_pos'] > self.milestones[self.counter])  : 
                 reward = 20 
                 self.counter = self.counter + 1 
             
@@ -71,7 +71,7 @@ class ProcessFrameMario(gym.Wrapper):
                 if info['flag_get'] :
                     reward = 50
                 else:
-                    reward = -50
+                    reward = 0
             
         elif self.reward_type == 'dense':
             print('im here')

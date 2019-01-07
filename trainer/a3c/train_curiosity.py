@@ -269,6 +269,7 @@ def test(rank, args, shared_model, counter):
         actions.append(action[0, 0])
         if actions.count(actions[0]) == actions.maxlen:
             done = True
+            print('action')
         if args.pos_stuck :
             positions.append(info['x_pos'])
             pos_ar = np.array(positions)
@@ -292,6 +293,7 @@ def test(rank, args, shared_model, counter):
             reward_sum = 0
             episode_length = 0
             actions.clear()
+            positions.clear()
             time.sleep(60)
 #             env.locked_levels = [False] + [True] * 31
 #             env.change_level(0)

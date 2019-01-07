@@ -81,8 +81,8 @@ if __name__ == '__main__':
     
     if os.path.isfile(SAVEPATH):
         print('Loading A3C parametets & ICM parameters...')
-        shared_model.load_state_dict(torch.load(args.save_path))
-        shared_icm.load_state_dict(torch.load(args.save_path[:-4] + '_curiosity.pkl'))
+        shared_model.load_state_dict(torch.load(SAVEPATH))
+        shared_icm.load_state_dict(torch.load(SAVEPATH[:-4] + '_curiosity.pkl'))
 
     torch.manual_seed(args.seed)
 

@@ -265,6 +265,7 @@ def test(rank, args, shared_model, counter):
             reward_sum = 0
             episode_length = 0
             actions.clear()
+            positions.clear()
             time.sleep(60)
 #             env.locked_levels = [False] + [True] * 31
 #             env.change_level(0)
