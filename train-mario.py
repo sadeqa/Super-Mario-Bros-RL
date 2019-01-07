@@ -60,6 +60,8 @@ if __name__ == '__main__':
         
     args = parser.parse_args()
     SAVEPATH = os.getcwd() + '/save/default_'+ args.reward_type +'/mario_a3c_params.pkl'
+    if not os.path.exists(os.getcwd() + '/save/default_'+ args.reward_type):
+        os.makedirs(os.getcwd() + '/save/default_'+ args.reward_type)
     
     env = create_mario_env(args.env_name, args.reward_type)    
 
