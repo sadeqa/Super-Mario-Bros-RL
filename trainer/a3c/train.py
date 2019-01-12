@@ -112,7 +112,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None, select_sample
             cum_rew = cum_rew + reward
 
             done = done or episode_length >= args.max_episode_length
-            reward = max(min(reward, 500), -50)
+            reward = max(min(reward, 500), -50)/10
 
             with lock:
                 counter.value += 1
