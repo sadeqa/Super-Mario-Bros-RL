@@ -24,7 +24,7 @@ from a2c_ppo_acktr.visualize import visdom_plot
 
 args = get_args()
 
-norm_pos = 3160
+norm_pos = 3161
 
 use_curiosity = args.use_curiosity
 
