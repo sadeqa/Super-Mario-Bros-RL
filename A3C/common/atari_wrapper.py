@@ -95,7 +95,7 @@ class ProcessFrameMario(gym.Wrapper):
                     
         else : return None
         
-        return _process_frame_mario(obs), reward, done, info
+        return _process_frame_mario(obs), reward/10, done, info
 
     def reset(self):
         self.prev_time = 400

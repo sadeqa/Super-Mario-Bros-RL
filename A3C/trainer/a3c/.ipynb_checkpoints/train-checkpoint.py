@@ -18,6 +18,7 @@ from common.atari_wrapper import create_mario_env
 from common.mario_actions import ACTIONS
 
 
+x_norm = 3161
 
 def ensure_shared_grads(model, shared_model):
     for param, shared_param in zip(model.parameters(),
@@ -112,7 +113,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None, select_sample
             cum_rew = cum_rew + reward
 
             done = done or episode_length >= args.max_episode_length
-            reward = max(min(reward, 500), -50)/10
+            reward = max(min(reward, 50), -5)
 
             with lock:
                 counter.value += 1
@@ -123,7 +124,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None, select_sample
                 state = env.reset()
                 with open(savefile[:-4]+'_{}.csv'.format(rank), 'a', newline='') as sfile:
                     writer = csv.writer(sfile)
-                    writer.writerows([[cum_rew]])
+                    writer.writerows([[cum_rew, info['x_pos']/x_norm]])
                 cum_rew = 0
                 #print ("Process {} has completed.".format(rank))
 
@@ -198,7 +199,7 @@ def test(rank, args, shared_model, counter):
     done = True
     savefile = os.getcwd() + '/save/default_'+ args.reward_type +'/mario_curves.csv'
     
-    title = ['Time','No. Steps', 'Total Reward', 'Episode Length']
+    title = ['Time','No. Steps', 'Total Reward', 'final_position', 'Episode Length']
     with open(savefile, 'a', newline='') as sfile:
         writer = csv.writer(sfile)
         writer.writerow(title)    
@@ -256,7 +257,7 @@ def test(rank, args, shared_model, counter):
                 reward_sum, episode_length))
             
             data = [time.time() - ep_start_time,
-                    counter.value, reward_sum, episode_length]
+                    counter.value, reward_sum,, info['x_pos']/x_norm, episode_length]
             
             with open(savefile, 'a', newline='') as sfile:
                 writer = csv.writer(sfile)
