@@ -41,8 +41,8 @@ def get_args():
                         help='ppo clip parameter (default: 0.2)')
     parser.add_argument('--log-interval', type=int, default=10,
                         help='log interval, one log per n updates (default: 10)')
-    parser.add_argument('--save-interval', type=int, default=100,
-                        help='save interval, one save per n updates (default: 100)')
+    parser.add_argument('--save-interval', type=int, default=10,
+                        help='save interval, one save per n updates (default: 10)')
     parser.add_argument('--eval-interval', type=int, default=20,
                         help='eval interval, one eval per n updates (default: None)')
     parser.add_argument('--vis-interval', type=int, default=10,
@@ -71,8 +71,7 @@ def get_args():
                         help='port to run the server on (default: 8097)')
     parser.add_argument('--reward_type', type=str, default='dense',
                     help='define the reward type (default: dense)')
-    parser.add_argument('--use_curiosity', type= bool, default=False,
-                    help='use_curiosity or not')
+    parser.add_argument('--use_curiosity', type= int, default= 0, help='use_curiosity or not')
     args = parser.parse_args()
 
     args.cuda = not args.no_cuda and torch.cuda.is_available()

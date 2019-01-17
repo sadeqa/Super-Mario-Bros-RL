@@ -61,6 +61,7 @@ def main():
     torch.set_num_threads(1)
     device = torch.device("cuda:0" if args.cuda else "cpu")
     print(device)
+    print(save_folder)
 
     if args.vis:
         from visdom import Visdom
@@ -118,7 +119,7 @@ def main():
         for step in range(args.num_steps):
             # Sample actions
             with torch.no_grad():
-                value, action, action_log_prob, recurrent_hidden_states = actor_critic.act(
+                value, action, action_log_prob, recurrent_hidden_states = agent.actor_critic.act(
                         rollouts.obs[step],
                         rollouts.recurrent_hidden_states[step],
                         rollouts.masks[step])
@@ -149,7 +150,7 @@ def main():
             rollouts.insert(obs, recurrent_hidden_states, action, action_log_prob, value, cur_reward.detach(), masks)
 
         with torch.no_grad():
-            next_value = actor_critic.get_value(rollouts.obs[-1],
+            next_value = agent.actor_critic.get_value(rollouts.obs[-1],
                                                 rollouts.recurrent_hidden_states[-1],
                                                 rollouts.masks[-1]).detach()
 
@@ -168,14 +169,14 @@ def main():
                 pass
 
             # A really ugly way to save a model to CPU
-            save_model = actor_critic
+            save_model = agent.actor_critic
             if args.cuda:
-                save_model = copy.deepcopy(actor_critic).cpu()
+                save_model = copy.deepcopy(agent.actor_critic).cpu()
 
             save_model = [save_model,
                           getattr(get_vec_normalize(envs), 'ob_rms', None)]
 
-            torch.save(save_model, os.path.join(save_path, args.env_name + ".pt"))
+            torch.save(save_model, os.path.join(save_folder, '/' + args.env_name + ".pt"))
 
         total_num_steps = (j + 1) * args.num_processes * args.num_steps
 
@@ -218,11 +219,12 @@ def main():
             while len(eval_episode_rewards) < 1:
                 with torch.no_grad():
                     
-                    _, action, _, eval_recurrent_hidden_states = actor_critic.act(
+                    _, action, _, eval_recurrent_hidden_states = agent.actor_critic.act(
                         obs, eval_recurrent_hidden_states, eval_masks, deterministic=True)
 
                 # Obser reward and next obs
                 obs, reward, done, infos = eval_envs.step(action)
+                eval_envs.render()
 
                 eval_masks = torch.FloatTensor([[0.0] if done_ else [1.0]
                                                 for done_ in done]).cuda()
