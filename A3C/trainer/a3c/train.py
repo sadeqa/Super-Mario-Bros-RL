@@ -109,7 +109,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None, select_sample
             log_prob = log_prob.gather(-1, Variable(action))
             
             action_out = int(action[0, 0].data.numpy())
-            state, reward, done, _ = env.step(action_out)
+            state, reward, done, info = env.step(action_out)
             cum_rew = cum_rew + reward
 
             done = done or episode_length >= args.max_episode_length
@@ -250,14 +250,14 @@ def test(rank, args, shared_model, counter):
                 done = True
 
         if done:
-            print("Time {}, num steps {}, FPS {:.0f}, episode reward {}, episode length {}".format(
+            print("Time {}, num steps {}, FPS {:.0f}, episode reward {:.3f}, distance covered {:.3f}, episode length {}".format(
                 time.strftime("%Hh %Mm %Ss",
                               time.gmtime(time.time() - start_time)), 
                 counter.value, counter.value / (time.time() - start_time),
-                reward_sum, episode_length))
+                reward_sum, info['x_pos']/x_norm, episode_length))
             
             data = [time.time() - ep_start_time,
-                    counter.value, reward_sum,, info['x_pos']/x_norm, episode_length]
+                    counter.value, reward_sum, info['x_pos']/x_norm, episode_length]
             
             with open(savefile, 'a', newline='') as sfile:
                 writer = csv.writer(sfile)
