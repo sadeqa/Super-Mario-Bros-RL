@@ -59,7 +59,7 @@ class ProcessFrameMario(gym.Wrapper):
                 Score = 2.5 x [Increase in Score]
                 Done = +50 [Game Completed] or -50 [Game Incomplete]
         '''
-        obs, reward, done, info = self.env.step(action)
+        obs, _, done, info = self.env.step(action)
         
         if self.reward_type == 'sparse':
             reward = 0 
@@ -102,6 +102,7 @@ class ProcessFrameMario(gym.Wrapper):
         self.prev_stat = 0
         self.prev_score = 0
         self.prev_dist = 40
+        self.counter = 0
         return _process_frame_mario(self.env.reset())
 
     def change_level(self, level):

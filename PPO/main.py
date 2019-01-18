@@ -97,6 +97,7 @@ def main():
                         actor_critic.recurrent_hidden_state_size)
 
     obs = envs.reset()
+    cum_rew = [0]*args.num_processes
     rollouts.obs[0].copy_(obs)
     rollouts.to(device)
 
@@ -130,18 +131,25 @@ def main():
             
             cur_reward = reward
             
+            to_write = reward.cpu().numpy()
+            for i in range(args.num_processes) : 
+                cum_rew[i] += to_write[i][0]
+            
             if use_curiosity :
                 action_one_hot = (torch.eye(14)[action]).view(-1,14).cuda()
                 _, pred_phi, actual_phi = curiosity((rollouts.obs[step], obs, action_one_hot))
-                cur_reward += ((pred_phi - actual_phi).pow(2)).sum(-1, keepdim=True).cpu()/20
+                cur_reward += 0.2 * ((pred_phi - actual_phi).pow(2)).sum(-1, keepdim=True).cpu()/2
             
+                
             for i, finished in enumerate(done):
                 if finished:
                     percentile = infos[i]['x_pos']/norm_pos
                     episode_rewards.append(percentile)
+                    print(cum_rew[i])
                     with open(train_file[:-4] + str(i) + train_file[-4:], 'a', newline='') as sfile:
                         writer = csv.writer(sfile)
-                        writer.writerows([[percentile]])
+                        writer.writerows([[cum_rew[i] ,percentile]])
+                    cum_rew[i] = 0
 
             # If done then clean the history of observations.
             masks = torch.FloatTensor([[0.0] if done_ else [1.0]
@@ -182,15 +190,14 @@ def main():
 
         if j % args.log_interval == 0 and len(episode_rewards) > args.num_processes:
             end = time.time()
-            print("Updates {}, num timesteps {}, FPS {} \n Last {} training episodes: mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n".
+            print("Updates {}, num timesteps {}, FPS {} \n Last {} training episodes: mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}, cumulative reward {:.3f}\n".
                 format(j, total_num_steps,
                        int(total_num_steps / (end - start)),
                        len(episode_rewards),
                        np.mean(episode_rewards),
                        np.median(episode_rewards),
                        np.min(episode_rewards),
-                       np.max(episode_rewards), dist_entropy,
-                       value_loss, action_loss))
+                       np.max(episode_rewards), np.mean(cum_rew)))
 #Evaluation time :
 
         if (args.eval_interval is not None
@@ -208,6 +215,8 @@ def main():
                 vec_norm.ob_rms = get_vec_normalize(envs).ob_rms
 
             eval_episode_rewards = []
+            test_rew = 0
+            finish_this = False
 
             obs = eval_envs.reset()
             eval_recurrent_hidden_states = torch.zeros(num_proc,
@@ -215,8 +224,8 @@ def main():
             
             eval_masks = torch.zeros(num_proc, 1, device=device)
             positions = deque(maxlen=400)
-
-            while len(eval_episode_rewards) < 1:
+            
+            while not finish_this:
                 with torch.no_grad():
                     
                     _, action, _, eval_recurrent_hidden_states = agent.actor_critic.act(
@@ -229,30 +238,47 @@ def main():
                 eval_masks = torch.FloatTensor([[0.0] if done_ else [1.0]
                                                 for done_ in done]).cuda()
 
+#                 for i, finished in enumerate(done):
+#                     if finished:
+#                         percentile = infos[i]['x_pos']/norm_pos
+#                         eval_episode_rewards.append(percentile)
+#                         with open(eval_file, 'a', newline='') as sfile:
+#                             writer = csv.writer(sfile)
+#                             writer.writerows([[percentile]])
+
+                test_rew += reward.cpu().numpy()[0,0]
+                
                 for i, finished in enumerate(done):
                     if finished:
+                        print('he died')
                         percentile = infos[i]['x_pos']/norm_pos
                         eval_episode_rewards.append(percentile)
                         with open(eval_file, 'a', newline='') as sfile:
                             writer = csv.writer(sfile)
-                            writer.writerows([[percentile]])
+                            writer.writerows([[test_rew ,percentile]])
+                        finish_this = True
                 
                 #to prevent the agent from getting stuck
                 positions.append(infos[0]['x_pos'])
                 pos_ar = np.array(positions)
                 if (len(positions) >= 200) and (pos_ar < pos_ar[-1] + 20).all() and (pos_ar > pos_ar[-1] - 20).all():
+                    print("he's stuck")
                     percentile = infos[0]['x_pos']/norm_pos
                     eval_episode_rewards.append(percentile)
                     with open(eval_file, 'a', newline='') as sfile:
                         writer = csv.writer(sfile)
-                        writer.writerows([[percentile]])
+                        writer.writerows([[test_rew, percentile]])
+                    finish_this = True
                     
             eval_envs.close()
             positions.clear()
 
-            print(" Evaluation using {} episodes: mean reward {:.5f}\n".
+            print(" Evaluation using {} episodes:  reward {:.3f}, distance {:.3f}\n".
                 format(len(eval_episode_rewards),
+                       test_rew,
                        np.mean(eval_episode_rewards)))
+            test_rew = 0
+            finish_this = False
             
 
         if args.vis and j % args.vis_interval == 0:
