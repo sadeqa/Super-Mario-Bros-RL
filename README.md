@@ -21,3 +21,8 @@ It explores A3C and PPO algorithms and combine them with an intrinsic reward bas
 ### A3C curiosity vs PPO curiosity in Sparse reward 
 
 ![sparse_ppo](figures/sparse_ppo_plot.png)
+
+
+
+
+![][A3C/video/mario.gif)
