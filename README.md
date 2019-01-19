@@ -5,7 +5,7 @@ This is the final project for the Reinforcement Learning course at the MVA Maste
 
 It explores A3C and PPO algorithms and combine them with an intrinsic reward based on curiosity. 
 
-![][A3C/video/mario.gif)
+![](A3C/video/mario.gif)
 
 
 ### A3C curiosity vs no curiosity in Dense reward 
