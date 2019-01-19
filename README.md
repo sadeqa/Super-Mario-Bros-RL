@@ -1,4 +1,4 @@
-# Deep Reinforcement Learning : A3C | PPO | Intrinsic Curiosity Module applied to Super Mario Bros.
+# Deep Reinforcement Learning : A3C | PPO | Curiosity applied to Super Mario Bros.
 
 
 This is the final project for the Reinforcement Learning course at the MVA Masters 2018/2019. 
