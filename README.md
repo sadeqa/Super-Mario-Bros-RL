@@ -8,6 +8,6 @@ It explores A3C and PPO algorithms and combine them with an intrinsic reward bas
 
 ## A3C curiosity vs no curiosity in Dense reward 
 
-(figures/dense_plot.png)
+![dense_cur](figures/dense_plot.png)
 
 
